@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Manage Employees</title>
+<script src='/js/server.js'></script>
+<script src='/js/jquery-2.1.1.min.js'></script>
+<script src='/js/common-utils.js'></script>
+<script type="text/javascript">
+var qs = getQueryStrings();
+var sessionId;
+var baseUrl = serverConfig.protocol+serverConfig.host+":"+serverConfig.port;
+
+if(!qs.sessionId) {
+	sessionExpire();
+} else {
+    sessionId = qs.sessionId;
+    getEmployees();
+    
+}
+
+function getEmployees() {
+	var url = serverConfig.protocol+serverConfig.host+":"+serverConfig.port+'/api/v1/employee';
+	
+	$.ajax({
+  	  type: "GET",
+  	  dataType: "json",
+  	  url: url,
+  	  headers: { 'X-Session-Id': sessionId },
+  	  success: onSuccess,
+  	  error: onError
+  	});
+	
+	function onSuccess(data, textStatus, jqXHR) {
+		var empArr = JSON.parse(jqXHR.responseText);
+		if(empArr.length == 0)
+			document.getElementById("employees").innerHTML = "No employees added. Create employees";
+		else
+			createEmployeeTable(empArr);
+	}
+	
+	function onError(jqXHR, errorType, exObj) {    		
+		if(jqXHR.responseText) {
+			if(jqXHR.responseText == 'Session Expired') {
+				sessionExpire();
+			} else {
+				alert(jqXHR.responseText);
+			}
+		} else {
+			alert("Cannot POST data to "+url);
+		}
+	}
+}
+
+function sessionExpire() {
+	window.location.replace(window.location.origin+"/html/login.html?errMsg=session expired");
+}
+
+function createEmployeeTable(empArr) {
+	var table = '<table border="1">';
+	table += '<tr>';
+	table += '<th>ID</th>';
+	table += '<th>First Name</th>';
+	table += '<th>Last Name</th>';
+	table += '<th>Address</th>';
+    table += '</tr>';
+	
+	for (var i=0; i<empArr.length; i++) {
+		table += '<tr>';
+		
+		table += '<td>';
+		table += empArr[i]._id;
+		table += '</td>';
+		
+		table += '<td>';
+		table += '<input type="text" id="'+empArr[i]._id+'fn" value="'+empArr[i].firstName+'">';
+		table += '</td>';
+		
+		table += '<td>';
+		table += '<input type="text" id="'+empArr[i]._id+'ln" value="'+empArr[i].lastName+'">';
+		table += '</td>';
+		
+		table += '<td>';
+		table += '<input type="text" id="'+empArr[i]._id+'ad" value="'+empArr[i].address+'">';
+		table += '</td>';
+		
+		table += '<td>';
+		table += '<button onclick="saveEmployee(\''+empArr[i]._id+'\')">Save</button>';
+		table += '</td>';
+		
+		table += '<td>';
+		table += '<button onclick="deleteEmployee(\''+empArr[i]._id+'\')">Detele</button>';
+		table += '</td>';
+		
+		table += '</tr>';
+	}
+	table += '</table>';
+	document.getElementById("employees").innerHTML = table;
+}
+
+function saveEmployee(empId) {
+	var firstName = document.getElementById(empId+"fn").value;
+	var lastName = document.getElementById(empId+"ln").value;
+	var address = document.getElementById(empId+"ad").value;
+
+	if(firstName == '' || lastName == '' || address == '') {
+		alert('Fields cannot be left blank');
+		return;
+	}
+	
+	var data = {'firstName':firstName, 'lastName':lastName, 'address':address};
+	var url = serverConfig.protocol+serverConfig.host+":"+serverConfig.port+'/api/v1/employee/'+empId;
+	$.ajax({
+  	  type: "PUT",
+  	  dataType: "json",
+  	  url: url,
+  	  data: data,
+  	  headers: { 'X-Session-Id': sessionId },
+  	  success: onSuccess,
+  	  error: onError
+	});
+		
+	function onSuccess(data, textStatus, jqXHR) {
+		alert('Employee updated successfully');
+	}
+		
+	function onError(jqXHR, errorType, exObj) {    		
+		if(jqXHR.responseText) {
+			alert(jqXHR.responseText);
+		} else {
+			alert("Cannot POST data to "+url);
+		}
+	}
+}
+
+function deleteEmployee(empId) {
+	var url = serverConfig.protocol+serverConfig.host+":"+serverConfig.port+'/api/v1/employee/'+empId;
+	$.ajax({
+  	  type: "DELETE",
+  	  url: url,
+  	  headers: { 'X-Session-Id': sessionId },
+  	  success: onSuccess,
+  	  error: onError
+	});
+		
+	function onSuccess(data, textStatus, jqXHR) {
+		alert('Employee Deleted successfully');
+		getEmployees();
+	}
+		
+	function onError(jqXHR, errorType, exObj) {    		
+		if(jqXHR.responseText) {
+			alert(jqXHR.responseText);
+		} else {
+			alert("Cannot POST data to "+url);
+		}
+	}
+}
+
+function createEmployee() {
+	var firstName = document.getElementById("createfn").value;
+	var lastName = document.getElementById("createln").value;
+	var address = document.getElementById("createad").value;
+
+	if(firstName == '' || lastName == '' || address == '') {
+		alert('Fields cannot be left blank');
+		return;
+	}
+	var data = {'firstName':firstName, 'lastName':lastName, 'address':address};
+	
+	var url = serverConfig.protocol+serverConfig.host+":"+serverConfig.port+'/api/v1/employee';
+	$.ajax({
+  	  type: "POST",
+  	  dataType: "json",
+  	  url: url,
+  	  data: data,
+  	  headers: { 'X-Session-Id': sessionId },
+  	  success: onSuccess,
+  	  error: onError
+	});
+		
+	function onSuccess(data, textStatus, jqXHR) {
+		alert('Employee created successfully');
+		document.getElementById("createfn").value = '';
+		document.getElementById("createln").value = '';
+		document.getElementById("createad").value = '';
+		getEmployees();
+	}
+		
+	function onError(jqXHR, errorType, exObj) {    		
+		if(jqXHR.responseText) {
+			alert(jqXHR.responseText);
+		} else {
+			alert("Cannot POST data to "+url);
+		}
+	}
+	
+}
+
+function logout() {
+	var url = serverConfig.protocol+serverConfig.host+":"+serverConfig.port+'/api/v1/logout';
+	$.ajax({
+  	  type: "POST",
+  	  url: url,
+  	  headers: { 'X-Session-Id': sessionId },
+  	  success: onSuccess,
+  	  error: onError
+	});
+		
+	function onSuccess(data, textStatus, jqXHR) {
+		window.location.replace(window.location.origin+"/html/login.html");
+	}
+		
+	function onError(jqXHR, errorType, exObj) {    		
+		if(jqXHR.responseText) {
+			alert(jqXHR.responseText);
+		} else {
+			alert("Cannot POST data to "+url);
+		}
+		window.location.replace(window.location.origin+"/html/login.html");
+	}
+}
+</script>
+</head>
+<body>
+<div align="right"><a href="#" onclick="logout()">Logout</a></div> 
+<h2><b>Create Employee</b></h2><br>
+	<table border="1">
+		<tr>
+			<td><b>First Name: </b></td>
+			<td><input type="text" id="createfn"></td>
+		</tr>
+		<tr>
+			<td><b>Last Name: </b></td>
+			<td><input type="text" id="createln"></td>
+		</tr>
+		<tr>
+			<td><b>Address: </b></td>
+			<td><input type="text" id="createad"></td>	
+		</tr>	
+		<tr>
+			<td><button onclick="createEmployee()">Create Employee</button></td>
+		</tr>	
+	</table>		
+
+	<br/><br/>
+	<h2><b>Manage Employees</b></h2><br>
+	<div id="employees"></div>
+</body>
+</html>
