@@ -7,7 +7,7 @@
 
 // Module dependencies
 var fs = require('fs'),
-    endpoint= require('./endPoint'),
+    endpoint= require('./endpoint'),
     http = require('http'),
     config = require('./routes/utilities/config'),
     dbHandler = require('./routes/utilities/dbconnection'),
